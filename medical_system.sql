@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Jan 11, 2025 at 08:33 AM
+-- Generation Time: Jan 12, 2025 at 09:52 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -31,7 +31,8 @@ CREATE TABLE `appointments` (
   `id` int NOT NULL,
   `doctor_id` int NOT NULL,
   `appointment_date` datetime NOT NULL,
-  `status` enum('available','scheduled','approved','rejected','not_available','not_available_morning','not_available_afternoon','not_available_full_day','requested') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `service` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `status` enum('available','scheduled','approved','rejected','not_available','not_available_morning','not_available_afternoon','not_available_full_day','requested','canceled') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `availability_type` enum('full_day','morning','afternoon') COLLATE utf8mb4_general_ci NOT NULL,
   `patient_id` int DEFAULT NULL,
   `is_available` tinyint(1) DEFAULT '1'
@@ -41,15 +42,13 @@ CREATE TABLE `appointments` (
 -- Dumping data for table `appointments`
 --
 
-INSERT INTO `appointments` (`id`, `doctor_id`, `appointment_date`, `status`, `availability_type`, `patient_id`, `is_available`) VALUES
-(139, 1, '2025-01-10 00:00:00', 'scheduled', 'full_day', 1, 0),
-(140, 1, '2025-01-11 00:00:00', 'scheduled', 'full_day', 2, 0),
-(141, 1, '2025-01-12 00:00:00', 'scheduled', 'full_day', 3, 0),
-(144, 1, '2025-01-18 00:00:00', 'not_available', 'full_day', NULL, 1),
-(145, 1, '2025-01-13 11:03:00', 'scheduled', 'full_day', 3, 1),
-(146, 1, '2025-01-17 11:08:00', 'approved', 'full_day', 3, 1),
-(147, 1, '2025-01-14 11:16:00', 'scheduled', 'full_day', 1, 1),
-(148, 1, '2025-01-15 18:10:00', 'scheduled', 'full_day', 5, 1);
+INSERT INTO `appointments` (`id`, `doctor_id`, `appointment_date`, `service`, `status`, `availability_type`, `patient_id`, `is_available`) VALUES
+(153, 1, '2025-01-12 13:06:00', 'Tooth removal', 'scheduled', 'full_day', 2, 1),
+(154, 1, '2025-01-13 13:29:00', 'Dental fillings', '', 'full_day', 1, 1),
+(156, 1, '2025-01-14 13:36:00', NULL, 'available', 'full_day', NULL, 1),
+(157, 1, '2025-01-13 15:46:00', NULL, '', 'full_day', 1, 0),
+(158, 1, '2025-01-16 00:00:00', 'Dental fillings', 'canceled', 'full_day', 1, 1),
+(159, 1, '2025-01-13 00:00:00', 'Teeth Cleanings', 'scheduled', 'full_day', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -97,8 +96,8 @@ CREATE TABLE `medical_records` (
 CREATE TABLE `notifications` (
   `id` int NOT NULL,
   `user_id` int NOT NULL,
-  `message` text COLLATE utf8mb4_general_ci NOT NULL,
-  `is_read` tinyint(1) DEFAULT '0',
+  `message` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -107,7 +106,22 @@ CREATE TABLE `notifications` (
 --
 
 INSERT INTO `notifications` (`id`, `user_id`, `message`, `is_read`, `created_at`) VALUES
-(1, 2, 'Your appointment has been approved.', 0, '2025-01-10 03:21:34');
+(1, 1, 'A patient has canceled their appointment.', 1, '2025-01-12 06:47:09'),
+(2, 1, 'A patient has rescheduled their appointment.', 1, '2025-01-12 07:43:57'),
+(3, 1, 'Your appointment has been approved.', 1, '2025-01-12 07:44:50'),
+(4, 1, 'A patient has canceled their appointment.', 1, '2025-01-12 07:49:36'),
+(5, 1, 'A patient has rescheduled their appointment.', 1, '2025-01-12 07:49:54'),
+(6, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 07:52:57'),
+(7, 1, 'Your appointment has been approved.', 0, '2025-01-12 08:32:25'),
+(8, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 08:33:48'),
+(9, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 08:38:44'),
+(10, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 08:45:46'),
+(11, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 08:51:08'),
+(12, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 09:06:51'),
+(13, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 09:19:33'),
+(14, 1, 'A patient has rescheduled their appointment.', 0, '2025-01-12 09:23:19'),
+(15, 2, 'A patient has rescheduled their appointment.', 0, '2025-01-12 09:44:12'),
+(16, 2, 'A patient has canceled their appointment.', 0, '2025-01-12 09:46:29');
 
 -- --------------------------------------------------------
 
@@ -190,7 +204,8 @@ ALTER TABLE `medical_records`
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `patients`
@@ -215,7 +230,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=149;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=160;
 
 --
 -- AUTO_INCREMENT for table `doctors`
@@ -233,7 +248,7 @@ ALTER TABLE `medical_records`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `patients`
@@ -269,6 +284,12 @@ ALTER TABLE `doctors`
 ALTER TABLE `medical_records`
   ADD CONSTRAINT `medical_records_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
   ADD CONSTRAINT `medical_records_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`);
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `patients`

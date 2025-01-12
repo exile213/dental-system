@@ -1,6 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 session_start();
 require_once 'db_connect.php';
 
@@ -18,7 +16,7 @@ $doctor = $stmt->fetch();
 
 // Fetch all appointments
 $stmt = $pdo->prepare("
-    SELECT a.*, p.first_name, p.last_name, p.date_of_birth 
+    SELECT a.*, p.first_name, p.last_name, p.date_of_birth, a.service 
     FROM appointments a 
     LEFT JOIN patients p ON a.patient_id = p.id 
     WHERE a.doctor_id = ?
@@ -26,6 +24,12 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$doctor['id']]);
 $appointments = $stmt->fetchAll();
+
+// Fetch unread notifications for the doctor
+$stmt = $pdo->prepare('SELECT * FROM notifications WHERE user_id = ? AND is_read = 0');
+$stmt->execute([$user_id]);
+$notifications = $stmt->fetchAll();
+$unread_count = count($notifications);
 ?>
 
 <!DOCTYPE html>
@@ -91,6 +95,7 @@ $appointments = $stmt->fetchAll();
                     <tr>
                         <th>Date</th>
                         <th>Patient</th>
+                        <th>Service</th>
                         <th>Availability Type</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -99,16 +104,17 @@ $appointments = $stmt->fetchAll();
                 <tbody>
                     <?php foreach ($appointments as $appointment): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($appointment['appointment_date']); ?></td>
+                        <td><?php echo htmlspecialchars($appointment['appointment_date'] ?? ''); ?></td>
                         <td>
                             <?php
                             if ($appointment['status'] == 'available') {
                                 echo 'Available';
                             } else {
-                                echo htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']);
+                                echo htmlspecialchars(($appointment['first_name'] ?? '') . ' ' . ($appointment['last_name'] ?? ''));
                             }
                             ?>
                         </td>
+                        <td><?php echo htmlspecialchars($appointment['service'] ?? ''); ?></td>
                         <td>
                             <?php
                             if ($appointment['status'] == 'scheduled' || $appointment['status'] == 'approved') {
@@ -126,7 +132,7 @@ $appointments = $stmt->fetchAll();
                             }
                             ?>
                         </td>
-                        <td><?php echo htmlspecialchars(ucfirst($appointment['status'])); ?></td>
+                        <td><?php echo htmlspecialchars(ucfirst($appointment['status'] ?? '')); ?></td>
                         <td>
                             <?php if ($appointment['status'] == 'requested'): ?>
                             <button class="btn btn-success btn-sm approve-appointment"
@@ -148,40 +154,6 @@ $appointments = $stmt->fetchAll();
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- Edit Slot Modal -->
-    <div class="modal fade" id="editSlotModal" tabindex="-1" aria-labelledby="editSlotModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editSlotModalLabel">Edit Slot</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editSlotForm">
-                        <input type="hidden" id="editSlotId" name="appointmentId">
-                        <div class="mb-3">
-                            <label for="editSlotDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="editSlotDate" name="newDate" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editAvailabilityType" class="form-label">Availability</label>
-                            <select class="form-select" id="editAvailabilityType" name="newAvailabilityType" required>
-                                <option value="available">Available</option>
-                                <option value="not_available_morning">Not Available (Morning)</option>
-                                <option value="not_available_afternoon">Not Available (Afternoon)</option>
-                                <option value="not_available_full_day">Not Available (Full Day)</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveEditSlot">Save changes</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -233,7 +205,7 @@ $appointments = $stmt->fetchAll();
                                     echo 'Not Available (Full Day)';
                                 }
                             } elseif ($appointment['status'] == 'scheduled' || $appointment['status'] == 'approved') {
-                                echo 'Scheduled: ' . htmlspecialchars($appointment['first_name'] . ' ' . $appointment['last_name']);
+                                echo 'Scheduled: ' . htmlspecialchars(($appointment['first_name'] ?? '') . ' ' . ($appointment['last_name'] ?? ''));
                             } else {
                                 echo ucfirst($appointment['status']);
                             }

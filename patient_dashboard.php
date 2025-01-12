@@ -16,7 +16,7 @@ $patient = $stmt->fetch();
 
 // Fetch upcoming appointments
 $stmt = $pdo->prepare("
-    SELECT a.*, d.first_name AS doctor_first_name, d.last_name AS doctor_last_name, d.specialization 
+    SELECT a.*, d.first_name AS doctor_first_name, d.last_name AS doctor_last_name, d.specialization, a.service 
     FROM appointments a 
     JOIN doctors d ON a.doctor_id = d.id 
     WHERE a.patient_id = ? AND a.status = 'scheduled' 
@@ -88,6 +88,17 @@ $doctors = $stmt->fetchAll();
                         <label for="appointmentTime" class="form-label">Preferred Time</label>
                         <input type="time" class="form-control" id="appointmentTime" name="appointmentTime" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="service" class="form-label">Service</label>
+                        <select class="form-select" id="service" name="service" required>
+                            <option value="">Choose a service</option>
+                            <option value="Tooth removal">Tooth removal</option>
+                            <option value="Root canal treatment">Root canal treatment</option>
+                            <option value="Teeth Cleanings">Teeth Cleanings</option>
+                            <option value="Braces">Braces</option>
+                            <option value="Dental fillings">Dental fillings</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">Request Appointment</button>
                 </form>
             </div>
@@ -106,7 +117,9 @@ $doctors = $stmt->fetchAll();
                             <th>Date</th>
                             <th>Doctor</th>
                             <th>Specialization</th>
+                            <th>Service</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -115,11 +128,50 @@ $doctors = $stmt->fetchAll();
                             <td><?php echo htmlspecialchars($appointment['appointment_date']); ?></td>
                             <td><?php echo htmlspecialchars($appointment['doctor_first_name'] . ' ' . $appointment['doctor_last_name']); ?></td>
                             <td><?php echo htmlspecialchars($appointment['specialization']); ?></td>
+                            <td><?php echo htmlspecialchars($appointment['service']); ?></td>
                             <td><?php echo htmlspecialchars($appointment['status']); ?></td>
+                            <td>
+                                <button class="btn btn-warning btn-sm reschedule-appointment"
+                                    data-id="<?php echo $appointment['id']; ?>"
+                                    data-date="<?php echo $appointment['appointment_date']; ?>"
+                                    data-doctor="<?php echo $appointment['doctor_id']; ?>"
+                                    data-service="<?php echo $appointment['service']; ?>">Reschedule</button>
+                                <button class="btn btn-danger btn-sm cancel-appointment"
+                                    data-id="<?php echo $appointment['id']; ?>">Cancel</button>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reschedule Appointment Modal -->
+    <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rescheduleModalLabel">Reschedule Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="rescheduleForm">
+                        <input type="hidden" id="rescheduleAppointmentId" name="appointmentId">
+                        <div class="mb-3">
+                            <label for="rescheduleDate" class="form-label">New Date</label>
+                            <input type="date" class="form-control" id="rescheduleDate" name="newDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rescheduleTime" class="form-label">New Time</label>
+                            <input type="time" class="form-control" id="rescheduleTime" name="newTime" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveReschedule">Save changes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -184,17 +236,6 @@ $doctors = $stmt->fetchAll();
                     },
                     <?php endforeach; ?>
                 ],
-                eventClick: function(info) {
-                    if (info.event.extendedProps.status === 'available') {
-                        if (confirm('Would you like to book this appointment with ' + info.event
-                                .extendedProps.fullTitle + '?')) {
-                            bookAppointment(info.event.extendedProps.appointment_id);
-                        }
-                    } else if (info.event.extendedProps.status.includes('not_available')) {
-                        alert('This slot is not available for booking: ' + info.event.extendedProps
-                            .fullTitle);
-                    }
-                },
                 eventDidMount: function(info) {
                     tippy(info.el, {
                         content: info.event.extendedProps.fullTitle,
@@ -208,8 +249,54 @@ $doctors = $stmt->fetchAll();
             });
             calendar.render();
 
-            function bookAppointment(appointmentId) {
-                fetch('book_appointment.php', {
+            // Handle reschedule button click
+            document.querySelectorAll('.reschedule-appointment').forEach(button => {
+                button.addEventListener('click', function() {
+                    const appointmentId = this.getAttribute('data-id');
+                    const date = this.getAttribute('data-date');
+                    document.getElementById('rescheduleAppointmentId').value = appointmentId;
+                    document.getElementById('rescheduleDate').value = new Date(date).toISOString().split('T')[0];
+                    var rescheduleModal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+                    rescheduleModal.show();
+                });
+            });
+
+            // Handle save reschedule button click
+            document.getElementById('saveReschedule').addEventListener('click', function() {
+                const form = document.getElementById('rescheduleForm');
+                const formData = new FormData(form);
+
+                fetch('reschedule_appointment.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Appointment rescheduled successfully!');
+                            location.reload();
+                        } else {
+                            alert('Failed to reschedule appointment: ' + data.message);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        alert('An error occurred while rescheduling the appointment.');
+                    });
+            });
+
+            // Handle cancel button click
+            document.querySelectorAll('.cancel-appointment').forEach(button => {
+                button.addEventListener('click', function() {
+                    const appointmentId = this.getAttribute('data-id');
+                    if (confirm('Are you sure you want to cancel this appointment?')) {
+                        cancelAppointment(appointmentId);
+                    }
+                });
+            });
+
+            function cancelAppointment(appointmentId) {
+                fetch('cancel_appointment.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -219,15 +306,15 @@ $doctors = $stmt->fetchAll();
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert('Appointment booked successfully!');
+                            alert('Appointment canceled successfully!');
                             location.reload();
                         } else {
-                            alert('Failed to book appointment: ' + data.message);
+                            alert('Failed to cancel appointment: ' + data.message);
                         }
                     })
                     .catch((error) => {
                         console.error('Error:', error);
-                        alert('An error occurred while booking the appointment.');
+                        alert('An error occurred while canceling the appointment.');
                     });
             }
 
@@ -252,6 +339,10 @@ $doctors = $stmt->fetchAll();
                         alert('An error occurred while submitting the appointment request.');
                     });
             });
+
+            // Set the min attribute of the appointmentDate input to today's date
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('appointmentDate').setAttribute('min', today);
         });
     </script>
 </body>

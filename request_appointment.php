@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'patient') {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $doctor_id = $_POST['doctor'];
     $appointment_date = $_POST['appointmentDate'] . ' ' . $_POST['appointmentTime'];
+    $service = $_POST['service'];
     $user_id = $_SESSION['user_id'];
 
     try {
@@ -24,9 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         $patient_id = $patient['id'];
 
-        // Now insert the appointment with the correct patient_id and status 'requested'
-        $stmt = $pdo->prepare("INSERT INTO appointments (doctor_id, patient_id, appointment_date, status) VALUES (?, ?, ?, 'requested')");
-        $stmt->execute([$doctor_id, $patient_id, $appointment_date]);
+        // Now insert the appointment with the correct patient_id, service, and status 'requested'
+        $stmt = $pdo->prepare("INSERT INTO appointments (doctor_id, patient_id, appointment_date, service, status) VALUES (?, ?, ?, ?, 'requested')");
+        $stmt->execute([$doctor_id, $patient_id, $appointment_date, $service]);
 
         echo json_encode(['success' => true]);
     } catch (Exception $e) {
