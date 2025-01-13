@@ -128,12 +128,11 @@ $doctors = $stmt->fetchAll();
                             <td><?php echo htmlspecialchars($appointment['appointment_date']); ?></td>
                             <td><?php echo htmlspecialchars($appointment['doctor_first_name'] . ' ' . $appointment['doctor_last_name']); ?></td>
                             <td><?php echo htmlspecialchars($appointment['specialization']); ?></td>
-                            <td><?php echo htmlspecialchars($appointment['service']); ?></td>
+                            <td><?php echo htmlspecialchars($appointment['service'] ?? ''); ?></td>
                             <td><?php echo htmlspecialchars($appointment['status']); ?></td>
                             <td>
                                 <button class="btn btn-warning btn-sm reschedule-appointment"
-                                    data-id="<?php echo $appointment['id']; ?>"
-                                    data-date="<?php echo $appointment['appointment_date']; ?>"
+                                    data-id="<?php echo $appointment['id']; ?>" data-date="<?php echo $appointment['appointment_date']; ?>"
                                     data-doctor="<?php echo $appointment['doctor_id']; ?>"
                                     data-service="<?php echo $appointment['service']; ?>">Reschedule</button>
                                 <button class="btn btn-danger btn-sm cancel-appointment"
@@ -148,7 +147,8 @@ $doctors = $stmt->fetchAll();
     </div>
 
     <!-- Reschedule Appointment Modal -->
-    <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="rescheduleModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -263,8 +263,10 @@ $doctors = $stmt->fetchAll();
                     const appointmentId = this.getAttribute('data-id');
                     const date = this.getAttribute('data-date');
                     document.getElementById('rescheduleAppointmentId').value = appointmentId;
-                    document.getElementById('rescheduleDate').value = new Date(date).toISOString().split('T')[0];
-                    var rescheduleModal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+                    document.getElementById('rescheduleDate').value = new Date(date).toISOString()
+                        .split('T')[0];
+                    var rescheduleModal = new bootstrap.Modal(document.getElementById(
+                        'rescheduleModal'));
                     rescheduleModal.show();
                 });
             });
