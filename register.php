@@ -2,38 +2,38 @@
 session_start();
 require_once 'db_connect.php';
 
+$registration_success = false;
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $email = $_POST['email'];
-    $user_type = $_POST['user_type'];
     $first_name = $_POST['first_name'];
     $last_name = $_POST['last_name'];
+    $address = $_POST['address'];
+    $phone_number = $_POST['phone_number'];
+    $emergency_contact_name = $_POST['emergency_contact_name'];
+    $emergency_contact_phone = $_POST['emergency_contact_phone'];
+    $medical_conditions = $_POST['medical_conditions'];
+    $date_of_birth = $_POST['date_of_birth'];
 
     try {
         $pdo->beginTransaction();
 
         // Insert into users table
-        $stmt = $pdo->prepare("INSERT INTO users (username, password, email, user_type) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$username, $password, $email, $user_type]);
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, email, user_type) VALUES (?, ?, ?, 'patient')");
+        $stmt->execute([$username, $password, $email]);
         $user_id = $pdo->lastInsertId();
 
-        // Insert into patients or doctors table
-        if ($user_type == 'patient') {
-            $date_of_birth = $_POST['date_of_birth'];
-            $stmt = $pdo->prepare("INSERT INTO patients (user_id, first_name, last_name, date_of_birth) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $first_name, $last_name, $date_of_birth]);
-        } else {
-            $specialization = $_POST['specialization'];
-            $stmt = $pdo->prepare("INSERT INTO doctors (user_id, first_name, last_name, specialization) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $first_name, $last_name, $specialization]);
-        }
+        // Insert into patients table
+        $stmt = $pdo->prepare("INSERT INTO patients (user_id, first_name, last_name, date_of_birth, address, phone_number, emergency_contact_name, emergency_contact_phone, medical_conditions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$user_id, $first_name, $last_name, $date_of_birth, $address, $phone_number, $emergency_contact_name, $emergency_contact_phone, $medical_conditions]);
 
         $pdo->commit();
-        $success = "Registration successful. You can now login.";
+        $registration_success = true;
     } catch (Exception $e) {
         $pdo->rollBack();
-        $error = "Registration failed: " . $e->getMessage();
+        $error_message = "Failed to register: " . $e->getMessage();
     }
 }
 ?>
@@ -48,70 +48,64 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <h2 class="mb-4">Register</h2>
-                <?php if (isset($error)): ?>
-                    <div class="alert alert-danger"><?php echo $error; ?></div>
-                <?php endif; ?>
-                <?php if (isset($success)): ?>
-                    <div class="alert alert-success"><?php echo $success; ?></div>
-                <?php endif; ?>
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="user_type" class="form-label">User Type</label>
-                        <select class="form-select" id="user_type" name="user_type" required>
-                            <option value="patient">Patient</option>
-                            <option value="doctor">Doctor</option>
-                        </select>
-                    </div>
-                    <div class="mb-3 patient-field">
-                        <label for="date_of_birth" class="form-label">Date of Birth</label>
-                        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
-                    </div>
-                    <div class="mb-3 doctor-field" style="display: none;">
-                        <label for="specialization" class="form-label">Specialization</label>
-                        <input type="text" class="form-control" id="specialization" name="specialization">
-                    </div>
-                    <button type="submit" class="btn btn-primary">Register</button>
-                </form>
-                <p class="mt-3">Already have an account? <a href="login.php">Login here</a></p>
+        <h2>Register</h2>
+        <?php if (isset($error_message)): ?>
+            <div class="alert alert-danger"><?php echo $error_message; ?></div>
+        <?php endif; ?>
+        <form method="POST" action="register.php">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
             </div>
-        </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label for="first_name" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="first_name" name="first_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="last_name" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <input type="text" class="form-control" id="address" name="address" required>
+            </div>
+            <div class="mb-3">
+                <label for="phone_number" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="phone_number" name="phone_number" required>
+            </div>
+            <div class="mb-3">
+                <label for="emergency_contact_name" class="form-label">Emergency Contact Name</label>
+                <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="emergency_contact_phone" class="form-label">Emergency Contact Phone Number</label>
+                <input type="text" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" required>
+            </div>
+            <div class="mb-3">
+                <label for="medical_conditions" class="form-label">Medical Conditions or Allergies</label>
+                <textarea class="form-control" id="medical_conditions" name="medical_conditions" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="date_of_birth" class="form-label">Date of Birth</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <?php if ($registration_success): ?>
     <script>
-        document.getElementById('user_type').addEventListener('change', function() {
-            var patientFields = document.querySelectorAll('.patient-field');
-            var doctorFields = document.querySelectorAll('.doctor-field');
-            if (this.value === 'patient') {
-                patientFields.forEach(field => field.style.display = 'block');
-                doctorFields.forEach(field => field.style.display = 'none');
-            } else {
-                patientFields.forEach(field => field.style.display = 'none');
-                doctorFields.forEach(field => field.style.display = 'block');
-            }
-        });
+        alert('Registration successful!');
+        window.location.href = 'login.php';
     </script>
+    <?php endif; ?>
 </body>
 </html>

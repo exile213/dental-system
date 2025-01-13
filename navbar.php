@@ -61,6 +61,7 @@ $last_name = $user['last_name'] ?? '';
                 <li class="nav-item">
                     <a class="nav-link" href="#calendar">Calendar</a>
                 </li>
+                
             </ul>
             <?php if ($user_type === 'doctor' || ($user_type === 'patient' && $user)): ?>
             <ul class="navbar-nav">
@@ -69,7 +70,7 @@ $last_name = $user['last_name'] ?? '';
                         data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-bell"></i>
                         <?php if ($unread_count > 0): ?>
-                        <span class="badge bg-danger"><?php echo $unread_count; ?></span>
+                        <span class="badge bg-danger" id="unread-count"><?php echo $unread_count; ?></span>
                         <?php endif; ?>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
@@ -82,7 +83,7 @@ $last_name = $user['last_name'] ?? '';
                         </li>
                         <?php endforeach; ?>
                         <li>
-                            <a class="dropdown-item" href="mark_notifications_read.php">Mark all as read</a>
+                            <a class="dropdown-item" href="#" id="mark-all-read">Mark all as read</a>
                         </li>
                         <?php else: ?>
                         <li>
@@ -100,3 +101,31 @@ $last_name = $user['last_name'] ?? '';
         </div>
     </div>
 </nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('mark-all-read').addEventListener('click', function(e) {
+        e.preventDefault();
+        fetch('mark_notifications_read.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('unread-count').style.display = 'none';
+                const dropdownMenu = document.querySelector('.dropdown-menu');
+                dropdownMenu.innerHTML = '<li><a class="dropdown-item" href="#">No new notifications</a></li>';
+            } else {
+                alert('Failed to mark notifications as read: ' + data.message);
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            alert('An error occurred while marking notifications as read.');
+        });
+    });
+});
+</script>

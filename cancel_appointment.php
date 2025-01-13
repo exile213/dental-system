@@ -23,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception('Appointment not found');
         }
 
-        // Update the appointment status to 'canceled'
-        $stmt = $pdo->prepare("UPDATE appointments SET status = 'canceled' WHERE id = ?");
+        // Delete the appointment
+        $stmt = $pdo->prepare("DELETE FROM appointments WHERE id = ?");
         $stmt->execute([$appointment_id]);
 
         // Fetch the user_id associated with the doctor_id
@@ -49,3 +49,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
+?>

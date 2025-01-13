@@ -212,6 +212,7 @@ $doctors = $stmt->fetchAll();
                             echo "'red'";
                         }
                         ?>,
+                        id: '<?php echo $appointment['id']; ?>',
                         extendedProps: {
                             doctor_id: <?php echo $appointment['doctor_id']; ?>,
                             appointment_id: <?php echo $appointment['id']; ?>,
@@ -245,6 +246,13 @@ $doctors = $stmt->fetchAll();
                     return {
                         start: nowDate
                     };
+                },
+                eventClick: function(info) {
+                    if (info.event.extendedProps.status === 'available') {
+                        if (confirm('Do you want to book this available slot?')) {
+                            bookAppointment(info.event.id);
+                        }
+                    }
                 }
             });
             calendar.render();
@@ -307,6 +315,11 @@ $doctors = $stmt->fetchAll();
                     .then(data => {
                         if (data.success) {
                             alert('Appointment canceled successfully!');
+                            // Remove the event from the calendar
+                            var event = calendar.getEventById(appointmentId);
+                            if (event) {
+                                event.remove();
+                            }
                             location.reload();
                         } else {
                             alert('Failed to cancel appointment: ' + data.message);
@@ -315,6 +328,29 @@ $doctors = $stmt->fetchAll();
                     .catch((error) => {
                         console.error('Error:', error);
                         alert('An error occurred while canceling the appointment.');
+                    });
+            }
+
+            function bookAppointment(appointmentId) {
+                fetch('book_appointment.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'appointmentId=' + appointmentId
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Appointment booked successfully!');
+                            location.reload();
+                        } else {
+                            alert('Failed to book appointment: ' + data.message);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        alert('An error occurred while booking the appointment.');
                     });
             }
 

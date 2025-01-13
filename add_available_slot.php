@@ -1,11 +1,10 @@
 <?php
-// filepath: /c:/laragon/www/medical-system/add_available_slot.php
 session_start();
 require_once 'db_connect.php';
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'doctor') {
+if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] != 'staff') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }
@@ -22,17 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $appointment_date = $slot_date . ' ' . $slot_time;
     }
 
-    // Fetch the doctor's ID from the doctors table
-    $stmt = $pdo->prepare('SELECT id FROM doctors WHERE user_id = ?');
-    $stmt->execute([$_SESSION['user_id']]);
-    $doctor = $stmt->fetch();
-
-    if (!$doctor) {
-        echo json_encode(['success' => false, 'message' => 'Doctor not found']);
-        exit();
-    }
-
-    $doctor_id = $doctor['id'];
+    // Use a fixed doctor_id of 1
+    $doctor_id = 1;
 
     try {
         // Determine the status based on availability type
@@ -53,14 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
 
-        // Insert the appointment into the database
-        $stmt = $pdo->prepare('INSERT INTO appointments (doctor_id, appointment_date, status, availability_type, patient_id) VALUES (?, ?, ?, ?, NULL)');
+        // Insert the new slot into the appointments table
+        $stmt = $pdo->prepare('INSERT INTO appointments (doctor_id, appointment_date, status, availability_type) VALUES (?, ?, ?, ?)');
         $stmt->execute([$doctor_id, $appointment_date, $status, $availability]);
 
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'message' => 'Slot added successfully']);
     } catch (Exception $e) {
-        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Failed to add slot: ' . $e->getMessage()]);
     }
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
 }
+?>

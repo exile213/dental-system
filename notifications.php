@@ -5,6 +5,7 @@ function addNotification($user_id, $message)
     $stmt = $pdo->prepare('INSERT INTO notifications (user_id, message, is_read) VALUES (?, ?, 0)');
     $stmt->execute([$user_id, $message]);
 }
+
 function getNotifications($user_id)
 {
     global $pdo;
